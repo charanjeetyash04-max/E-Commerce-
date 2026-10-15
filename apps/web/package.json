@@ -50,7 +50,7 @@
         ]
     },
     "devDependencies": {
-        "@redux-devtools/extension": "^3.3.0",
+        "@redux-devtools/extension": "^4.0.0",
         "@vitejs/plugin-react": "^6.1.1",
         "autoprefixer": "^10.5.5",
         "postcss": "^8.5.28",
