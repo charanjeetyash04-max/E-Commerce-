@@ -1,0 +1,7 @@
+{
+  "name": "@maison/shared",
+  "version": "0.1.0",
+  "description": "Shared constants and utilities for MAISON (API + Web). Import via @maison/shared.",
+  "type": "commonjs",
+  "main": "src/index.js"
+}

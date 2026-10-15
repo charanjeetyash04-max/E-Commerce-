@@ -1,0 +1,82 @@
+# Local stack: API + Redis + Elasticsearch.
+# Run from the REPO ROOT:
+#   docker compose -f infra/docker/docker-compose.yml up --build
+# Paths below are relative to the build context (repo root).
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile
+      # Vite inlines VITE_* / REACT_APP_* at build time, so any client-visible vars must
+      # be passed as build args here (they come from your shell / .env).
+      args:
+        REACT_APP_GOOGLE_CLIENT_ID: ${REACT_APP_GOOGLE_CLIENT_ID:-}
+        REACT_APP_CASHFREE_MODE: ${REACT_APP_CASHFREE_MODE:-}
+        REACT_APP_SOCKET_URL: ${REACT_APP_SOCKET_URL:-}
+    container_name: order_planning_ecommerce
+    ports:
+      - "8080:8080"
+    # Secrets (JWT_SECRET_KEY, GEMINI_API_KEY, Cashfree, AWS, SMTP, OAuth, ...)
+    # come from this file. The `environment:` block below overrides the service
+    # URLs so they point at the compose network, not localhost/Atlas/Upstash.
+    env_file:
+      - ../../apps/api/config/config.env
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+      # DB_HOSTED_URI is intentionally NOT set here — it is read from
+      # apps/api/config/config.env (the env_file above) so that file is the
+      # single source of truth for the Mongo connection string.
+      - REDIS_URL=redis://redis:6379
+      - ELASTICSEARCH_NODE=http://elasticsearch:9200
+    depends_on:
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: my_redis
+    # No host port published — the app reaches Redis over the internal Compose
+    # network as redis://redis:6379. Add `ports: ["6380:6379"]` only if you want
+    # to run redis-cli against it from your host on port 6380.
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    container_name: my_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false     # dev only — enable + TLS in production
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"  # cap heap; raise for larger catalogs
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "9200:9200"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -qE '\"status\":\"(green|yellow)\"'"]
+      interval: 15s
+      timeout: 10s
+      retries: 12
+      start_period: 60s
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+    driver: local
+  es-data:
+    driver: local

@@ -1,6 +1,6 @@
 * @AnantDuhan
 
 /.github/ @AnantDuhan
-/backend/ @AnantDuhan
-/frontend/ @AnantDuhan
+/apps/api/ @AnantDuhan
+/apps/web/ @AnantDuhan
 /docs/ @AnantDuhan

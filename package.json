@@ -1,0 +1,24 @@
+{
+  "name": "maison-order-planning",
+  "version": "2.0.0",
+  "private": true,
+  "description": "MAISON — E-Commerce & Order Planning Platform (monorepo)",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm --workspace @maison/api run dev",
+    "dev:web": "npm --workspace @maison/web run dev",
+    "dev": "npm run dev:api",
+    "build:web": "npm --workspace @maison/web run build",
+    "build": "npm run build:web",
+    "start": "npm --workspace @maison/api run start",
+    "worker": "npm --workspace @maison/api run worker",
+    "test:api": "npm --workspace @maison/api run test",
+    "test": "npm run test:api"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

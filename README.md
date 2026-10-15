@@ -646,41 +646,56 @@ GET /api/v1/health
 
 # 📁 Project Structure
 
-A simplified view of the repository:
+A simplified view of the monorepo:
 
 ```text
 MAISON-Order-Planning/
 │
-├── backend/
-│   ├── config/
-│   ├── controllers/
-│   ├── middleware/
-│   ├── models/
-│   ├── routes/
-│   ├── services/
-│   ├── scripts/
-│   ├── utils/
+├── apps/
+│   ├── api/                  # Node.js / Express API (was backend/)
+│   │   ├── config/
+│   │   ├── controllers/
+│   │   ├── middleware/
+│   │   ├── models/
+│   │   ├── routes/
+│   │   ├── services/
+│   │   ├── scripts/
+│   │   ├── utils/
+│   │   │
+│   │   ├── newsletterJob.js
+│   │   ├── wishlistJob.js
+│   │   ├── worker.js
+│   │   ├── app.js
+│   │   └── server.js
 │   │
-│   ├── newsletterJob.js
-│   ├── wishlistJob.js
-│   ├── worker.js
-│   ├── app.js
-│   └── server.js
+│   └── web/                  # React client (was frontend/)
+│       ├── public/
+│       └── src/
+│           ├── actions/
+│           ├── components/
+│           ├── constants/
+│           ├── reducers/
+│           └── ...
 │
-├── frontend/
-│   ├── public/
-│   └── src/
-│       ├── actions/
-│       ├── components/
-│       ├── constants/
-│       ├── reducers/
-│       ├── screens/
-│       └── ...
+├── packages/
+│   └── shared/               # dependency-free shared code for api + web
+│
+├── infra/
+│   ├── docker/
+│   │   ├── Dockerfile
+│   │   └── docker-compose.yml
+│   └── deploy/
+│       └── render.yaml
+│
+├── tools/
+│   └── dev/
+│       └── load-balancer.js  # local dev round-robin proxy (was lb.js)
 │
 ├── .github/
 │   └── workflows/
-│       └── cron.yml
+│       └── ci.yml
 │
+├── package.json              # npm workspaces: apps/*, packages/*
 └── README.md
 ```
 
@@ -720,18 +735,22 @@ git clone https://github.com/AnantDuhan/MAISON-Order-Planning.git
 cd MAISON-Order-Planning
 ```
 
-Install backend dependencies:
+Install API dependencies:
 
 ```bash
-npm install
+npm --workspace @maison/api install
 ```
 
-Install frontend dependencies:
+Install web dependencies:
 
 ```bash
-cd frontend
+npm --workspace @maison/web install
+```
+
+Or install everything from the root (npm workspaces):
+
+```bash
 npm install
-cd ..
 ```
 
 ---
@@ -741,8 +760,10 @@ cd ..
 Create:
 
 ```text
-backend/config/config.env
+apps/api/config/config.env
 ```
+
+Copy from `apps/api/config/.env.example` and fill in.
 
 Example:
 
@@ -806,12 +827,12 @@ Never commit production credentials, API keys, database credentials, or JWT secr
 
 # 🖥️ Run Locally
 
-## Start Backend
+## Start API
 
 From the repository root:
 
 ```bash
-npm run dev
+npm run dev:api
 ```
 
 Or:
@@ -820,7 +841,7 @@ Or:
 npm start
 ```
 
-Backend:
+API:
 
 ```text
 http://localhost:4000
@@ -828,16 +849,15 @@ http://localhost:4000
 
 ---
 
-## Start Frontend
+## Start Web
 
 In another terminal:
 
 ```bash
-cd frontend
-npm start
+npm run dev:web
 ```
 
-Frontend:
+Web:
 
 ```text
 http://localhost:3000
@@ -850,18 +870,16 @@ http://localhost:3000
 Build the React application:
 
 ```bash
-cd frontend
-npm run build
-cd ..
+npm run build:web
 ```
 
-Then start the backend:
+Then start the API:
 
 ```bash
 npm start
 ```
 
-In production, the Node.js backend can serve the compiled React application, allowing the frontend and backend to operate through the same origin.
+In production, the Node.js API can serve the compiled React application, allowing the web and API to operate through the same origin.
 
 ---
 
@@ -872,31 +890,33 @@ Several database maintenance scripts are included.
 Create indexes:
 
 ```bash
-node backend/scripts/createIndexes.js
+npm --workspace @maison/api run reindex
+# or directly:
+node apps/api/scripts/createIndexes.js
 ```
 
 Preview ID migration:
 
 ```bash
-node backend/scripts/migrateIds.js
+node apps/api/scripts/migrateIds.js
 ```
 
 Apply ID migration:
 
 ```bash
-node backend/scripts/migrateIds.js --apply
+node apps/api/scripts/migrateIds.js --apply
 ```
 
 Repair order/product references:
 
 ```bash
-node backend/scripts/repairOrderProductRefs.js
+node apps/api/scripts/repairOrderProductRefs.js
 ```
 
 Fix legacy reference types:
 
 ```bash
-node backend/scripts/fixRefTypes.js
+node apps/api/scripts/fixRefTypes.js
 ```
 
 Always back up the database before running scripts that modify production data.
@@ -905,27 +925,25 @@ Always back up the database before running scripts that modify production data.
 
 # 🧪 Development
 
-Backend:
+API:
 
 ```bash
-npm run dev
+npm run dev:api
 ```
 
-Frontend:
+Web:
 
 ```bash
-cd frontend
-npm start
+npm run dev:web
 ```
 
-Frontend production build:
+Web production build:
 
 ```bash
-cd frontend
-npm run build
+npm run build:web
 ```
 
-Backend worker:
+API worker:
 
 ```bash
 npm run worker
@@ -935,10 +953,10 @@ npm run worker
 
 # 🐳 Docker
 
-If using the repository's Docker configuration:
+If using the repository's Docker configuration (from the repo root):
 
 ```bash
-docker-compose up --build
+docker compose -f infra/docker/docker-compose.yml up --build
 ```
 
 The application architecture supports running the application alongside MongoDB and Redis.
